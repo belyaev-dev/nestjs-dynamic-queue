@@ -8,8 +8,8 @@
 
 <h3 align="center">NestJS Dynamic Queue Module</h3>
 <a href="https://www.npmjs.com/package/nestjs-dynamic-queue"><img src="https://img.shields.io/npm/v/nestjs-dynamic-queue.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/nestjs-dynamic-queue"><img src="https://img.shields.io/npm/l/nestjs-dynamic-queue.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/nestjs-dynamic-queue"><img src="https://img.shields.io/npm/dm/nestjs-dynamic-queue.svg" alt="NPM Downloads" /></a>
+<a href="https://www.npmjs.com/package/nestjs-dynamic-queue"><img src="https://img.shields.io/npm/l/nestjs-dynamic-queue.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/package/nestjs-dynamic-queue"><img src="https://img.shields.io/npm/dm/nestjs-dynamic-queue.svg" alt="NPM Downloads" /></a>
 
 <div align="center">
   <a href="https://nestjs.com" target="_blank">
