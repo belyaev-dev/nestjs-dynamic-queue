@@ -1,12 +1,31 @@
-import { DynamicModule, Module, Provider } from '@nestjs/common';
+import { DynamicModule, Global, Module, Provider } from '@nestjs/common';
 import { DynamicQueueService } from './dynamic-queue.service';
-import { DiscoveryModule, DiscoveryService, MetadataScanner } from '@nestjs/core';
-import { DYNAMIC_QUEUE_CONNECT_OPTIONS } from './dynamic-queue.constants';
-import { DynamicQueueConnectAsyncOptions, DynamicQueueConnectOptions, DynamicQueueOptionsFactory } from './dynamic-queue.interface';
+import {
+  DiscoveryModule,
+  DiscoveryService,
+  MetadataScanner,
+} from '@nestjs/core';
+import {
+  DYNAMIC_QUEUE_CONNECTION,
+  DYNAMIC_QUEUE_CONNECT_OPTIONS,
+} from './dynamic-queue.constants';
+import {
+  DynamicQueueConnectAsyncOptions,
+  DynamicQueueConnectOptions,
+  DynamicQueueOptionsFactory,
+} from './dynamic-queue.interface';
 
+export const connectionFactory = {
+  provide: DYNAMIC_QUEUE_CONNECTION,
+  useFactory: async (AmoSingleService) => {
+    return AmoSingleService;
+  },
+  inject: [DynamicQueueService],
+};
 
+@Global()
 @Module({
-  imports: [DiscoveryModule]
+  imports: [DiscoveryModule],
 })
 export class DynamicQueueModule {
   public static forRoot(options: DynamicQueueConnectOptions): DynamicModule {
@@ -20,9 +39,9 @@ export class DynamicQueueModule {
         DynamicQueueService,
         DiscoveryService,
         MetadataScanner,
+        connectionFactory,
       ],
-      exports: [DynamicQueueService],
-      global: true,
+      exports: [DynamicQueueService, connectionFactory],
     };
   }
 
@@ -30,12 +49,15 @@ export class DynamicQueueModule {
     connectOptions: DynamicQueueConnectAsyncOptions,
   ): DynamicModule {
     const dynamicModuleOptions: DynamicModule = {
-        module: DynamicQueueModule,
-        imports: connectOptions.imports || [],
-        providers: [this.createConnectAsyncProviders(connectOptions), DynamicQueueService],
-        exports: [DynamicQueueService],
-        global: true
-    }
+      module: DynamicQueueModule,
+      imports: connectOptions.imports || [],
+      providers: [
+        this.createConnectAsyncProviders(connectOptions),
+        DynamicQueueService,
+        connectionFactory,
+      ],
+      exports: [DynamicQueueService, connectionFactory],
+    };
     return dynamicModuleOptions;
   }
 

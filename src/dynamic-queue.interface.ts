@@ -8,11 +8,11 @@ export interface ProcessOptions {
 }
 
 export interface IProcess {
-  instance: object,
-  key: string,
-  moduleRef: Module,
-  isRequestScoped: boolean,
-  options?: ProcessOptions,
+  instance: object;
+  key: string;
+  moduleRef: Module;
+  isRequestScoped: boolean;
+  options?: ProcessOptions;
 }
 
 export type IProcessPayloadMap<A extends string, B> = {
@@ -29,9 +29,10 @@ export interface DynamicQueueConnectOptions extends BullRootModuleOptions {
 }
 
 export interface DynamicQueueOptionsFactory {
-  createOptions(): Promise<DynamicQueueConnectOptions> | DynamicQueueConnectOptions;
+  createOptions():
+    | Promise<DynamicQueueConnectOptions>
+    | DynamicQueueConnectOptions;
 }
-
 
 export interface DynamicQueueConnectAsyncOptions
   extends Pick<ModuleMetadata, 'imports'> {

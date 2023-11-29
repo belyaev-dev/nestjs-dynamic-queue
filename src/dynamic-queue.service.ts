@@ -8,7 +8,12 @@ import {
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { Inject, Injectable, Type } from '@nestjs/common';
 import * as Bull from 'bull';
-import { DynamicQueueConnectOptions, IProcess, IProcessPayloadMap, ProcessOptions } from './dynamic-queue.interface';
+import {
+  DynamicQueueConnectOptions,
+  IProcess,
+  IProcessPayloadMap,
+  ProcessOptions,
+} from './dynamic-queue.interface';
 import {
   DYNAMIC_QUEUE_CONNECT_OPTIONS,
   BULL_MODULE_QUEUE,
@@ -90,9 +95,11 @@ export class DynamicQueueService {
   }
 
   async onModuleInit() {
-    this.dynamicQueueConnectOptions.initialQueueNames?.forEach(async (queueName) => {
-      await this.getAccountQueue(queueName);
-    });
+    this.dynamicQueueConnectOptions.initialQueueNames?.forEach(
+      async (queueName) => {
+        await this.getAccountQueue(queueName);
+      },
+    );
   }
 
   async addTask<T extends string, P>(
@@ -109,9 +116,15 @@ export class DynamicQueueService {
     if (!!this.accountsQueue[queueId]?.bull)
       return this.accountsQueue[queueId].bull;
 
-    const config = {...this.dynamicQueueConnectOptions, queueNamePrefix: undefined};
+    const config = {
+      ...this.dynamicQueueConnectOptions,
+      queueNamePrefix: undefined,
+    };
 
-    const queue = new Bull(`${this.dynamicQueueConnectOptions.queueNamePrefix || ''}${queueId}`, config);
+    const queue = new Bull(
+      `${this.dynamicQueueConnectOptions.queueNamePrefix || ''}${queueId}`,
+      config,
+    );
 
     this.accountsQueue[queueId] = {
       bull: queue,

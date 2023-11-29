@@ -1,6 +1,6 @@
 {
   "name": "nestjs-dynamic-queue",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The nestjs-dynamic-queue package is a NestJS module that allows you to create queues at runtime and send messages to them. It provides a wrapper around the bull package, which is a powerful Redis-based queue library. With nestjs-dynamic-queue, you can easily integrate queue functionality into your NestJS application and leverage the features provided by bull, such as job scheduling, retries, and prioritization.",
   "main": "dist/index",
   "files": [
