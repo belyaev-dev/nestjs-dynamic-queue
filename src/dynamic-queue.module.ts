@@ -1,82 +1,95 @@
-import { DynamicModule, Global, Module, Provider } from '@nestjs/common';
+import { DynamicModule, Module, Provider } from '@nestjs/common';
 import { DynamicQueueService } from './dynamic-queue.service';
 import {
-  DiscoveryModule,
   DiscoveryService,
   MetadataScanner,
 } from '@nestjs/core';
 import {
-  DYNAMIC_QUEUE_CONNECTION,
-  DYNAMIC_QUEUE_CONNECT_OPTIONS,
+  DYNAMIC_QUEUE_SERVICE,
+  DYNAMIC_QUEUE_SERVICE_OPTIONS,
 } from './dynamic-queue.constants';
 import {
-  DynamicQueueConnectAsyncOptions,
-  DynamicQueueConnectOptions,
-  DynamicQueueOptionsFactory,
+  DynamicQueueServiceAsyncOptions,
+  DynamicQueueServiceOptions,
+  DynamicQueueServiceOptionsFactory,
 } from './dynamic-queue.interface';
 
-export const connectionFactory = {
-  provide: DYNAMIC_QUEUE_CONNECTION,
-  useFactory: async (AmoSingleService) => {
-    return AmoSingleService;
+export const dynamicQueueFactory = {
+  provide: DYNAMIC_QUEUE_SERVICE,
+  useFactory: async (DynamicQueueService) => {
+    return DynamicQueueService;
   },
   inject: [DynamicQueueService],
 };
 
-@Global()
 @Module({
-  imports: [DiscoveryModule],
+  providers: [DynamicQueueService, DiscoveryService, MetadataScanner],
+  exports: [DynamicQueueService, dynamicQueueFactory],
 })
 export class DynamicQueueModule {
-  public static forRoot(options: DynamicQueueConnectOptions): DynamicModule {
+  public static forRoot(options: DynamicQueueServiceOptions): DynamicModule {
     return {
+      global: true,
       module: DynamicQueueModule,
       providers: [
         {
-          provide: DYNAMIC_QUEUE_CONNECT_OPTIONS,
+          provide: DYNAMIC_QUEUE_SERVICE_OPTIONS,
           useValue: options,
         },
-        DynamicQueueService,
-        DiscoveryService,
-        MetadataScanner,
-        connectionFactory,
+        dynamicQueueFactory,
       ],
-      exports: [DynamicQueueService, connectionFactory],
+      exports: [dynamicQueueFactory],
     };
   }
 
   public static forRootAsync(
-    connectOptions: DynamicQueueConnectAsyncOptions,
+    options: DynamicQueueServiceAsyncOptions,
   ): DynamicModule {
     const dynamicModuleOptions: DynamicModule = {
       module: DynamicQueueModule,
-      imports: connectOptions.imports || [],
-      providers: [
-        this.createConnectAsyncProviders(connectOptions),
-        DynamicQueueService,
-        connectionFactory,
-      ],
-      exports: [DynamicQueueService, connectionFactory],
+      imports: options.imports || [],
+      providers:
+        this.createConnectAsyncProviders(options),
     };
     return dynamicModuleOptions;
   }
 
   private static createConnectAsyncProviders(
-    options: DynamicQueueConnectAsyncOptions,
-  ): Provider {
-    if (options.useFactory) {
-      return {
-        provide: DYNAMIC_QUEUE_CONNECT_OPTIONS,
-        useFactory: options.useFactory,
-        inject: options.inject || [],
-      };
+    options: DynamicQueueServiceAsyncOptions,
+  ): Provider[] {
+    if (options.useExisting || options.useFactory) {
+      return this.createAsyncOptionsProvider(options);
     }
 
-    return {
-      provide: DYNAMIC_QUEUE_CONNECT_OPTIONS,
-      useFactory: async (optionsFactory: DynamicQueueOptionsFactory) =>
-        await optionsFactory.createOptions(),
-      inject: [options.useExisting || options.useClass],
-    };
+    return [
+      ...this.createAsyncOptionsProvider(options),
+      {
+        provide: options.useClass,
+        useClass: options.useClass,
+      }
+    ]
   }
+
+  private static createAsyncOptionsProvider(
+    options: DynamicQueueServiceAsyncOptions,
+  ): Provider[] {
+    if (options.useFactory) {
+      return [
+        {
+          provide: DYNAMIC_QUEUE_SERVICE_OPTIONS,
+          useFactory: options.useFactory,
+          inject: options.inject || [],
+        },
+      ];
+    }
+    return [
+      {
+        provide: DYNAMIC_QUEUE_SERVICE_OPTIONS,
+        useFactory: async (optionsFactory: DynamicQueueServiceOptionsFactory) =>
+          await optionsFactory.createOptions(),
+        inject: [options.useExisting || options.useClass],
+      },
+    ];
+  }
+
 }

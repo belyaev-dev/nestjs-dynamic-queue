@@ -23,25 +23,25 @@ export interface BullMQRootModuleOptions extends QueueOptions {
   url?: string;
 }
 
-export interface DynamicQueueConnectOptions extends BullMQRootModuleOptions {
+export interface DynamicQueueServiceOptions extends BullMQRootModuleOptions {
   queueNamePrefix?: string;
   initialQueueNames?: string[];
 }
 
-export interface DynamicQueueOptionsFactory {
+export interface DynamicQueueServiceOptionsFactory {
   createOptions():
-    | Promise<DynamicQueueConnectOptions>
-    | DynamicQueueConnectOptions;
+    | Promise<DynamicQueueServiceAsyncOptions>
+    | DynamicQueueServiceAsyncOptions;
 }
 
-export interface DynamicQueueConnectAsyncOptions
+export interface DynamicQueueServiceAsyncOptions
   extends Pick<ModuleMetadata, 'imports'> {
   inject?: any[];
-  useExisting?: Type<DynamicQueueOptionsFactory>;
-  useClass?: Type<DynamicQueueOptionsFactory>;
+  useExisting?: Type<DynamicQueueServiceOptionsFactory>;
+  useClass?: Type<DynamicQueueServiceOptionsFactory>;
   useFactory?: (
     ...args: any[]
-  ) => Promise<DynamicQueueConnectOptions> | DynamicQueueConnectOptions;
+  ) => Promise<DynamicQueueServiceAsyncOptions> | DynamicQueueServiceAsyncOptions;
 }
 
 export { JobsOptions };

@@ -19,7 +19,6 @@ import {
   BULLMQ_MODULE_QUEUE,
   BULLMQ_MODULE_QUEUE_PROCESS,
 } from './dynamic-queue.constants';
-import { Module } from '@nestjs/core/injector/module';
 import { Injector } from '@nestjs/core/injector/injector';
 
 @Injectable()
