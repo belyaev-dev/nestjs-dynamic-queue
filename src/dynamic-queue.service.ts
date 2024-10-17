@@ -7,7 +7,7 @@ import {
 } from '@nestjs/core';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { Inject, Injectable, Type } from '@nestjs/common';
-import * as Bull from 'bull';
+import { Queue, Worker, Job, QueueOptions, JobsOptions } from 'bullmq';
 import {
   DynamicQueueConnectOptions,
   IProcess,
@@ -16,8 +16,8 @@ import {
 } from './dynamic-queue.interface';
 import {
   DYNAMIC_QUEUE_CONNECT_OPTIONS,
-  BULL_MODULE_QUEUE,
-  BULL_MODULE_QUEUE_PROCESS,
+  BULLMQ_MODULE_QUEUE,
+  BULLMQ_MODULE_QUEUE_PROCESS,
 } from './dynamic-queue.constants';
 import { Module } from '@nestjs/core/injector/module';
 import { Injector } from '@nestjs/core/injector/injector';
@@ -28,7 +28,8 @@ export class DynamicQueueService {
   private accountsQueue: Record<
     string,
     {
-      bull: Bull.Queue;
+      queue: Queue;
+      worker: Worker;
     }
   >;
   private processes: IProcess[];
@@ -77,21 +78,21 @@ export class DynamicQueueService {
   private getProcessMetadata(
     target: Type<any> | Function,
   ): ProcessOptions | undefined {
-    return this.reflector.get(BULL_MODULE_QUEUE_PROCESS, target);
+    return this.reflector.get(BULLMQ_MODULE_QUEUE_PROCESS, target);
   }
 
   private isProcessor(target: Type<any> | Function): boolean {
     if (!target) {
       return false;
     }
-    return !!this.reflector.get(BULL_MODULE_QUEUE_PROCESS, target);
+    return !!this.reflector.get(BULLMQ_MODULE_QUEUE_PROCESS, target);
   }
 
   private isQueue(target: Type<any> | Function): boolean {
     if (!target) {
       return false;
     }
-    return !!this.reflector.get(BULL_MODULE_QUEUE, target);
+    return !!this.reflector.get(BULLMQ_MODULE_QUEUE, target);
   }
 
   async onModuleInit() {
@@ -106,86 +107,49 @@ export class DynamicQueueService {
     accountId: string,
     processName: T,
     payload: IProcessPayloadMap<T, P>[T],
-    options?: Bull.JobOptions,
+    options?: JobsOptions,
   ) {
     const queue = await this.getAccountQueue(accountId);
     return queue.add(processName, payload, options);
   }
 
   async getAccountQueue(queueId: string) {
-    if (!!this.accountsQueue[queueId]?.bull)
-      return this.accountsQueue[queueId].bull;
+    if (!!this.accountsQueue[queueId]?.queue)
+      return this.accountsQueue[queueId].queue;
 
-    const config = {
+    const config: QueueOptions = {
       ...this.dynamicQueueConnectOptions,
-      queueNamePrefix: undefined,
+      prefix: this.dynamicQueueConnectOptions.queueNamePrefix,
     };
 
-    const queue = new Bull(
-      `${this.dynamicQueueConnectOptions.queueNamePrefix || ''}${queueId}`,
-      config,
-    );
+    const queue = new Queue(queueId, config);
+    const worker = new Worker(queueId, async (job: Job) => {
+      const process = this.processes.find(p => p.options?.name === job.name);
+      if (process) {
+        const { instance, key, moduleRef, isRequestScoped } = process;
+        const contextId = createContextId();
+        const contextInstance = await this.injector.loadPerContext(
+          instance,
+          moduleRef,
+          moduleRef.providers,
+          contextId,
+        );
+
+        if (isRequestScoped) {
+          if (this.moduleRef.registerRequestByContextId) {
+            this.moduleRef.registerRequestByContextId(job, contextId);
+          }
+        }
+
+        return contextInstance[key].call(contextInstance, job);
+      }
+    }, config);
 
     this.accountsQueue[queueId] = {
-      bull: queue,
+      queue,
+      worker,
     };
 
-    for (const { instance, key, moduleRef, isRequestScoped, options } of this
-      .processes) {
-      await this.handleProcessor(
-        instance,
-        key,
-        queue,
-        moduleRef,
-        isRequestScoped,
-        options,
-      );
-    }
-
     return queue;
-  }
-
-  private async handleProcessor(
-    instance: object,
-    key: string,
-    queue: Bull.Queue,
-    moduleRef: Module,
-    isRequestScoped: boolean,
-    options?: ProcessOptions,
-  ) {
-    const concurrency = options?.concurrency || 0;
-
-    let args: unknown[] = [options?.name, concurrency];
-
-    const contextId = createContextId();
-    const contextInstance = await this.injector.loadPerContext(
-      instance,
-      moduleRef,
-      moduleRef.providers,
-      contextId,
-    );
-
-    if (isRequestScoped) {
-      const callback: Bull.ProcessCallbackFunction<unknown> = async (
-        ...args: unknown[]
-      ) => {
-        if (this.moduleRef.registerRequestByContextId) {
-          // Additional condition to prevent breaking changes in
-          // applications that use @nestjs/bull older than v7.4.0.
-          const jobRef = args[0];
-          this.moduleRef.registerRequestByContextId(jobRef, contextId);
-        }
-        return contextInstance[key].call(contextInstance, ...args);
-      };
-      args.push(callback);
-    } else {
-      args.push(
-        instance[key].bind(
-          contextInstance,
-        ) as Bull.ProcessCallbackFunction<unknown>,
-      );
-    }
-    args = args.filter((item) => item !== undefined);
-    queue.process.call(queue, ...args);
   }
 }

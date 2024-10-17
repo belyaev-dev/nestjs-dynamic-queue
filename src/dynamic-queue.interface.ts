@@ -1,6 +1,6 @@
 import { ModuleMetadata, Type } from '@nestjs/common';
 import { Module } from '@nestjs/core/injector/module';
-import Bull from 'bull';
+import { QueueOptions, JobsOptions } from 'bullmq';
 
 export interface ProcessOptions {
   name?: string;
@@ -19,11 +19,11 @@ export type IProcessPayloadMap<A extends string, B> = {
   [key in A]: B;
 };
 
-export interface BullRootModuleOptions extends Bull.QueueOptions {
+export interface BullMQRootModuleOptions extends QueueOptions {
   url?: string;
 }
 
-export interface DynamicQueueConnectOptions extends BullRootModuleOptions {
+export interface DynamicQueueConnectOptions extends BullMQRootModuleOptions {
   queueNamePrefix?: string;
   initialQueueNames?: string[];
 }
@@ -43,3 +43,5 @@ export interface DynamicQueueConnectAsyncOptions
     ...args: any[]
   ) => Promise<DynamicQueueConnectOptions> | DynamicQueueConnectOptions;
 }
+
+export { JobsOptions };

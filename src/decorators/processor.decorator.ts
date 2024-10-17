@@ -1,6 +1,6 @@
 import { Scope, SetMetadata } from '@nestjs/common';
 import { SCOPE_OPTIONS_METADATA } from '@nestjs/common/constants';
-import { BULL_MODULE_QUEUE } from '../dynamic-queue.constants';
+import { BULLMQ_MODULE_QUEUE } from '../dynamic-queue.constants';
 
 export interface ProcessorOptions {
   /**
@@ -38,6 +38,6 @@ export function Processor(
   // eslint-disable-next-line @typescript-eslint/ban-types
   return (target: Function) => {
     SetMetadata(SCOPE_OPTIONS_METADATA, options)(target);
-    SetMetadata(BULL_MODULE_QUEUE, options)(target);
+    SetMetadata(BULLMQ_MODULE_QUEUE, options)(target);
   };
 }
